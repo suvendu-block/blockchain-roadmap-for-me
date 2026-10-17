@@ -4,6 +4,7 @@ import { Contract, JsonRpcProvider } from "ethers";
 import { config } from "../config.js";
 import { TIP_ABI } from "../abi.js";
 import { Tip } from "../models/Tip.js";
+import { Withdrawal } from "../models/Withdrawal.js";
 
 let provider = null;
 let contract = null;
@@ -132,30 +133,43 @@ export async function fetchOnChainStats() {
     contract.owner(),
   ]);
 
+  // Lifetime received = sum of every tip ever (the jar balance drops after a sweep).
+  let lifetimeWei = null;
+  if (tipCount <= 2_000n) {
+    const [, amounts] = await contract.getTips();
+    lifetimeWei = amounts.reduce((sum, value) => sum + value, 0n).toString();
+  }
+
   return {
     contractAddress,
     owner: owner.toLowerCase(),
     tipCount: Number(tipCount),
     totalWei: totalWei.toString(),
+    lifetimeWei,
     balanceWei: (await provider.getBalance(contractAddress)).toString(),
     blockNumber: await provider.getBlockNumber(),
   };
 }
 
 /**
- * Poll the chain for Tipped events and mirror them into MongoDB.
+ * Poll the chain for Tipped and Withdrawn events and mirror them into MongoDB.
  * Docs created by the API keep their name/message thanks to $setOnInsert.
  */
-export async function indexTips() {
+export async function indexEvents() {
   const { provider, contract } = getChain();
 
   const latest = await provider.getBlockNumber();
-  if (latest <= lastIndexedBlock) return { indexed: 0, latest };
+  if (latest <= lastIndexedBlock) {
+    return { indexed: 0, withdrawn: 0, latest };
+  }
 
   const fromBlock = lastIndexedBlock + 1;
-  const events = await contract.queryFilter(contract.filters.Tipped(), fromBlock, latest);
+  const [tipEvents, withdrawEvents] = await Promise.all([
+    contract.queryFilter(contract.filters.Tipped(), fromBlock, latest),
+    contract.queryFilter(contract.filters.Withdrawn(), fromBlock, latest),
+  ]);
 
-  for (const ev of events) {
+  for (const ev of tipEvents) {
     await Tip.updateOne(
       { txHash: ev.transactionHash.toLowerCase() },
       {
@@ -171,8 +185,25 @@ export async function indexTips() {
     );
   }
 
+  for (const ev of withdrawEvents) {
+    // Withdrawn carries no timestamp — take it from the block.
+    const block = await ev.getBlock();
+    await Withdrawal.updateOne(
+      { txHash: ev.transactionHash.toLowerCase() },
+      {
+        $setOnInsert: {
+          to: ev.args.to.toLowerCase(),
+          amount: ev.args.amount.toString(),
+          timestamp: new Date(Number(block.timestamp) * 1000),
+          blockNumber: ev.blockNumber,
+        },
+      },
+      { upsert: true }
+    );
+  }
+
   lastIndexedBlock = latest;
-  return { indexed: events.length, latest };
+  return { indexed: tipEvents.length, withdrawn: withdrawEvents.length, latest };
 }
 
 /** Start polling for on-chain tips in the background. */
@@ -180,9 +211,9 @@ export function startIndexer() {
   const tick = async () => {
     if (!contract) return;
     try {
-      const { indexed } = await indexTips();
-      if (indexed > 0) {
-        console.log(`[indexer] mirrored ${indexed} tip event(s) into MongoDB`);
+      const { indexed, withdrawn } = await indexEvents();
+      if (indexed > 0 || withdrawn > 0) {
+        console.log(`[indexer] mirrored ${indexed} tip(s) and ${withdrawn} withdrawal(s) into MongoDB`);
       }
     } catch (err) {
       console.warn(`[indexer] ${err.message}`);

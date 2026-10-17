@@ -2,6 +2,7 @@ import { Router } from "express";
 import mongoose from "mongoose";
 import { TIP_ABI } from "../abi.js";
 import { Tip } from "../models/Tip.js";
+import { Withdrawal } from "../models/Withdrawal.js";
 import {
   fetchOnChainStats,
   getChainStatus,
@@ -52,17 +53,28 @@ apiRouter.get("/tips", async (req, res) => {
 
 /** GET /api/stats — on-chain totals + Mongo leaderboard */
 apiRouter.get("/stats", async (_req, res) => {
-  const mongoStats = await Tip.aggregate([
-    {
-      $group: {
-        _id: "$from",
-        totalWei: { $sum: { $toDecimal: "$amount" } },
-        tips: { $sum: 1 },
-        lastTipAt: { $max: "$timestamp" },
+  const [mongoStats, withdrawalAgg] = await Promise.all([
+    Tip.aggregate([
+      {
+        $group: {
+          _id: "$from",
+          totalWei: { $sum: { $toDecimal: "$amount" } },
+          tips: { $sum: 1 },
+          lastTipAt: { $max: "$timestamp" },
+        },
       },
-    },
-    { $sort: { totalWei: -1 } },
-    { $limit: 5 },
+      { $sort: { totalWei: -1 } },
+      { $limit: 5 },
+    ]),
+    Withdrawal.aggregate([
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 },
+          totalWei: { $sum: { $toDecimal: "$amount" } },
+        },
+      },
+    ]),
   ]);
 
   let onChain = null;
@@ -73,9 +85,15 @@ apiRouter.get("/stats", async (_req, res) => {
     onChainError = err.message;
   }
 
+  const withdrawalTotals = withdrawalAgg[0];
+
   res.json({
     onChain,
     onChainError,
+    withdrawals: {
+      count: withdrawalTotals ? Number(withdrawalTotals.count) : 0,
+      totalWei: withdrawalTotals ? withdrawalTotals.totalWei.toString() : "0",
+    },
     topTippers: mongoStats.map((row) => ({
       address: row._id,
       totalWei: row.totalWei.toString(),
@@ -83,6 +101,18 @@ apiRouter.get("/stats", async (_req, res) => {
       lastTipAt: row.lastTipAt,
     })),
   });
+});
+
+/** GET /api/withdrawals?limit=20 — sweeps mirrored from Withdrawn events (owner dashboard) */
+apiRouter.get("/withdrawals", async (req, res) => {
+  const limit = Math.min(Math.max(Number.parseInt(req.query.limit, 10) || 20, 1), 100);
+
+  const withdrawals = await Withdrawal.find()
+    .sort({ timestamp: -1, _id: -1 })
+    .limit(limit)
+    .lean();
+
+  res.json({ count: withdrawals.length, withdrawals });
 });
 
 /**

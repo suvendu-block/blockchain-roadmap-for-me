@@ -1,19 +1,20 @@
 {
   "name": "tip-jar",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Tip Jar backend — Hardhat contract, deploy scripts and the Express + MongoDB API",
+  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:api": "node --test test-api/",
     "chain": "hardhat node",
     "deploy:local": "hardhat run scripts/deploy.ts --network localhost"
   },
-  "keywords": [],
+  "keywords": ["solidity", "hardhat", "express", "mongodb", "tip-jar"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "type": "module",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^4.0.0",
