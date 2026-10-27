@@ -1,0 +1,10 @@
+{
+  "solidity/days/day2.sol": {
+    "__sources__": {
+      "solidity/days/day2.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.20;\r\n\r\n\r\n\r\n\r\n\r\n\r\ncontract newCalculater {\r\n    uint256 constant MIN_AMOUNT= 10;\r\n\r\n    address public immutable owner;\r\n\r\n\r\n    uint256 private balence;\r\n\r\n\r\n    constructor () {\r\n        owner = msg.sender;\r\n    }\r\n\r\n\r\n\r\n\r\n    function Deposit () external  payable {\r\n        if (msg.value < MIN_AMOUNT) {\r\n            revert(\"TOO SMALL\");\r\n        }\r\n        balence += msg.value;\r\n    }\r\n    \r\n\r\n\r\n    function getBlance() public view returns (uint256) {\r\n        return balence;\r\n    }\r\n\r\n\r\n\r\n    function bonus(uint256 amount) public pure returns (uint256) {\r\n        return amount /10;\r\n    }\r\n\r\n\r\n\r\n\r\n    function SplitInTwo (uint256 amount) public pure returns (uint256 half , uint256 rest) {\r\n        half = amount / 2;\r\n        rest = amount - half;\r\n    }\r\n\r\n\r\n\r\n\r\n    function sumTo(uint256 n) public pure returns (uint256) {\r\n        return n * (n + 1) / 2;\r\n    }\r\n\r\n\r\n    function sumTwoWhile (uint256 n) public pure returns (uint256 sum) {\r\n        uint256 i = 1;\r\n        while (i <=n) {\r\n            sum +=i;\r\n            i++;\r\n        }\r\n    }\r\n\r\n\r\n\r\n\r\n    function secrectNote () private pure returns (string memory) {\r\n        return \"Save a little every day\";\r\n    }\r\n    \r\n}",
+        "file": "solidity/days/day2.sol"
+      }
+    }
+  }
+}
