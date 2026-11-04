@@ -6,5 +6,13 @@
         "file": "solidity/days/day2.sol"
       }
     }
+  },
+  "solidity/days/day3.sol": {
+    "__sources__": {
+      "solidity/days/day3.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.20;\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\n\r\ncontract my {\r\n    int main = 12;\r\n}",
+        "file": "solidity/days/day3.sol"
+      }
+    }
   }
 }
