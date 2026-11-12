@@ -4,23 +4,23 @@
 
 - Contract structure, pragma, and SPDX license
 - Data types: `uint`, `int`, `bool`, `address`, `bytes`, `string`
-- State, local, and global variables (`msg.sender`, `msg.value`, `block.timestamp`)
+- State, local, and global variables (`msg.sender`, `msg.value`, `block.timestamp`) [1]
 - Constants and immutables
 - Functions: parameters, return values, named returns
-- Visibility: `public`, `private`, `internal`, `external`
+- Visibility: `public`, `private`, `internal`, `external` [2]
 - State mutability: `view`, `pure`, `payable`
 - Control flow: `if/else`, `for`, `while`
-- Arrays: fixed, dynamic, `push`, `pop`
+- Arrays: fixed, dynamic, `push`, `pop` [3]
 - Mappings and nested mappings
 - Structs and enums
-- Data locations: `storage`, `memory`, `calldata`
+- Data locations: `storage`, `memory`, `calldata` [4]
 - Constructors
 - Events and `emit`
-- Errors: `require`, `revert`, `assert`, custom errors
+- Errors: `require`, `revert`, `assert`, custom errors [5]
 - Modifiers
 - Sending ETH: `transfer`, `send`, `call`
-- `receive` and `fallback` functions
-
+- `receive` and `fallback` functions [6]
+ 
 ## Intermediate
 
 - Inheritance, `virtual` and `override`, multiple inheritance
